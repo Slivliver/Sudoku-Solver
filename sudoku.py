@@ -27,17 +27,15 @@ print("Now your sudoku:")
 print()
 
 
-
+# the number of optional places that can hold a certain digit for every digit for every row/column/box.
 optionsColl = [[(size1) for i in range(size1)] for j in range(size1)]
 optionsRow = [[(size1) for i in range(size1)] for j in range(size1)]
 optionSquare = [[[(size1) for i in range(size1)] for j in range(size2)]for z in range(size2)]
 
+# for every possible digit: true if in row/column/box for every row/column/box.
 rows = [[False] * size1 for _ in range(size1)]
 columns = [[False] * size1 for _ in range(size1)]
 boxes = [[[False] * size1 for _ in range(size2)] for _ in range(size2)]
-
-count = 0
-arr1 = [input().split() for i in range(size1)]
 
 class cell:
     def __init__(self):
@@ -58,13 +56,20 @@ class cell:
                     for z in range(size1):
                         self.boolArr[z] = True
         return count == size1 - 1
-            
+
+count = 0
+arr1 = [input().split() for i in range(size1)]
 arr = [[cell() for i in range(size1)] for j in range(size1)]
 
 def fill(i, j):
     rows[i][arr[i][j].value-1] = True
     columns[j][arr[i][j].value-1] = True
     boxes[(i - i%size2)//size2][(j - j%size2)//size2][arr[i][j].value-1] = True
+
+def remove(i, j, x):
+    rows[i][x] = False
+    columns[j][x] = False
+    boxes[(i - i%size2)//size2][(j - j%size2)//size2][x] = False
     
 def fill2(i, j, value):
     optionsColl[j][value] -= 1
@@ -80,11 +85,9 @@ for i in range(size1):
                 arr[i][j].boolArr[z] = True
                 fill2(i, j, z)
 
-def remove(i, j, x):
-    rows[i][x] = False
-    columns[j][x] = False
-    boxes[(i - i%size2)//size2][(j - j%size2)//size2][x] = False
-
+# for position (i, j) delete the option for the position's value for evey place in it's row, coll and box.
+# if after a place options have been changed it remain with only one possibility it changes thet place's
+# value to that possibility and call recursively to itself with the new position. 
 def solve0(i, j):
     arr[i][j].fixed = True
     if arr[i][j].value != 0:
@@ -117,7 +120,9 @@ def solve0(i, j):
                     if (arr[m + i - i%size2][n + j - j%size2].isItKnown()):
                         fill(m + i - i%size2, n + j - j%size2)
                         solve0(m + i - i%size2, n + j - j%size2)
-                               
+
+# for evey row, coll and box chacks if one of the digits can have only one place it can be on.
+# if it does then it changes the value of the place which hold this possibility to that possible number. 
 def solve1():
     for i in range(size1):
         for x in range(size1):
@@ -162,7 +167,7 @@ def solve1():
                             solve1()
                             return
 
-
+# chack if solved
 def isOkTotal():
     if (not isFull()):
         return False
@@ -187,7 +192,7 @@ def isOkTotal():
                         arr[n*size2 +i][m*size2 +j].value = temp
     return True
 
-
+# chack a position is coherent with the rest of the sudoku
 def isOk(row, col):
     if (rows[row][arr[row][col].value - 1]):
         return False
@@ -197,6 +202,7 @@ def isOk(row, col):
         return False
     return True
 
+# return true if true, return false if not
 def isFull():
     for i in range(size1):
         for j in range(size1):
@@ -204,6 +210,7 @@ def isFull():
                 return False
     return True
 
+# stupid inefficient function which copys the intire state of the board.
 def copy(optionsRow, optionsColl, optionSquare, rows, columns, boxes, arr):
     _arr = [[cell() for i in range(size1)] for j in range(size1)]
     _optionsColl = [[(size1) for i in range(size1)] for j in range(size1)]
@@ -247,6 +254,8 @@ def copy(optionsRow, optionsColl, optionSquare, rows, columns, boxes, arr):
 
     return (_optionsRow, _optionsColl, _optionSquare, _rows, _columns, _boxes, _arr)
 
+# choose the next position the backtracking should continue from
+# that would be the position with the least options for what it's value can be
 def Next():
     min = size1 + 1
     _i = 0
@@ -268,6 +277,9 @@ def Next():
         return(_i, _j, True)
     return(_i, _j, False)
     
+# solves the sudoku with backtracking, in every recursive call it also call to the other solve functions (solve1, solve2).
+# i, j - the current position. i1, j1 - the position from which it called to itself with the current position. 
+# the value of i1, j1 in the first call will be -1, -1.
 def solve(i, j, i1, j1):
     global optionsRow
     global optionsColl
@@ -330,10 +342,10 @@ def solve(i, j, i1, j1):
 
 print("")
 print("")
-
-
 start_time = time.time()
 
+# start solving the sudoku:
+#Stage one:
 print("Stage one: ")
 for i in range(size1):
     for j in range(size1):
@@ -345,9 +357,10 @@ for i in arr:
         print(j.value, end=' ')
     print("")
 print("")
+print("")
+print("")
 
-print("")
-print("")
+#Stage two:
 print("Stage two: ")
 solve1()
 
@@ -358,6 +371,7 @@ for i in arr:
 print("")
 
 if not isOkTotal():
+    #Stage three:
     print("Stage three: ")
     row, col, _ = Next()
     solve(row,col, -1, -1)
@@ -377,152 +391,3 @@ print ("")
 print ("press enter to exit")
 
 stop = input()
-
-''' hard 25*25 sudoku (approximate 878 seconds --- 23840 recursive calls):
-2 0 0 25 9 0 16 0 20 0 5 0 14 0 0 4 0 8 0 0 0 0 7 17 0
-0 0 0 24 0 2 0 0 25 0 15 16 3 20 0 0 0 14 1 10 0 22 8 6 12
-0 0 6 0 0 0 7 17 24 19 2 0 0 25 0 15 16 0 20 0 5 0 0 1 10
-0 0 1 0 5 0 0 6 12 4 23 0 0 0 19 0 0 0 25 9 15 16 0 0 0
-16 0 0 11 15 0 0 1 0 5 0 8 0 0 4 23 7 17 0 0 0 0 13 25 9
-0 0 0 0 0 11 15 16 3 0 10 0 0 0 1 12 0 0 0 6 0 19 0 7 17
-0 0 7 17 24 0 2 0 0 0 0 0 16 3 0 0 5 18 14 0 12 0 22 0 0
-0 22 0 0 0 0 23 7 0 24 0 2 21 0 0 0 15 16 0 0 10 5 0 0 0
-5 0 0 0 0 0 22 8 6 0 0 0 7 0 0 0 0 0 13 0 0 15 0 0 20
-0 16 0 0 0 5 18 14 0 0 0 22 0 6 0 19 0 7 17 24 0 0 0 0 25
-0 0 2 0 13 0 0 0 16 3 0 0 5 18 14 6 0 4 22 8 0 0 0 0 7
-24 19 23 0 17 25 0 2 21 0 0 0 15 0 0 0 10 0 18 14 6 0 4 0 8
-12 0 0 0 0 24 19 23 7 0 0 9 0 21 0 0 0 15 16 3 1 10 0 0 14
-10 0 0 0 1 12 4 22 8 6 24 0 23 7 0 0 9 0 21 0 0 11 15 16 0
-11 15 0 3 0 10 5 0 0 0 12 4 0 8 0 0 0 23 7 17 25 9 2 21 0
-0 25 0 0 21 0 0 11 15 0 14 1 10 5 0 8 0 12 0 0 0 17 24 19 0
-17 24 19 23 0 13 0 9 2 0 3 0 11 15 0 0 1 0 5 0 8 0 0 4 22
-6 12 4 0 0 0 24 19 0 0 0 0 0 2 0 3 20 11 15 0 14 00 10 0 18
-0 0 5 0 0 6 12 0 0 0 0 24 0 23 7 0 25 0 2 0 3 0 0 15 16
-20 11 0 16 0 1 0 5 18 14 6 12 4 22 8 17 0 19 0 7 0 0 9 2 21
-0 13 25 0 0 0 3 20 11 15 0 0 1 10 0 0 0 0 12 0 0 7 0 24 0
-7 17 0 19 0 0 13 25 9 0 0 0 0 0 0 0 0 1 0 0 22 0 6 0 4
-0 6 12 0 0 0 17 24 19 23 21 0 0 0 2 0 3 20 11 0 18 14 1 10 0
-0 0 0 5 0 0 6 0 4 22 0 17 24 19 0 0 13 25 0 0 0 3 20 0 15
-0 20 11 0 16 14 0 10 5 0 8 0 0 0 0 7 17 24 0 23 0 0 25 9 2
-'''
-
-''' easy 16*16 sudoku (approximate 0.12 seconds --- 1 recursive calls): 
-0 15 0 1 0 2 10 14 12 0 0 0 0 0 0 0 
-0 6 3 16 12 0 8 4 14 15 1 0 2 0 0 0 
-14 0 9 7 11 3 15 0 0 0 0 0 0 0 0 0 
-4 13 2 12 0 0 0 0 6 0 0 0 0 15 0 0 
-0 0 0 0 14 1 11 7 3 5 10 0 0 8 0 12 
-3 16 0 0 2 4 0 0 0 14 7 13 0 0 5 15 
-11 0 5 0 0 0 0 0 0 9 4 0 0 6 0 0 
-0 0 0 0 13 0 16 5 15 0 0 12 0 0 0 0 
-0 0 0 0 9 0 1 12 0 8 3 10 11 0 15 0 
-2 12 0 11 0 0 14 3 5 4 0 0 0 0 9 0 
-6 3 0 4 0 0 13 0 0 11 9 1 0 12 16 2 
-0 0 10 9 0 0 0 0 0 0 12 0 8 0 6 7 
-12 8 0 0 16 0 0 10 0 13 0 0 0 5 0 0 
-5 0 0 0 3 0 4 6 0 1 15 0 0 0 0 0 
-0 9 1 6 0 14 0 11 0 0 2 0 0 0 10 8 
-0 14 0 0 0 13 9 0 4 12 11 8 0 0 2 0 
-'''
-''' medium 16*16 sudoku (approximate 3.05 seconds --- 222 recursive calls): 
- 0  3  2  0  0  8  1  0  0  9 12  0  0 11  4 15 
- 0  0  0  0  0  0  0 16  3  0  0  0  0  0  0  0 
- 4  9  0  0 15  0  0  5  7  0  0  6  0  0  8  3 
-13  0  0 16  0  0 12  0  0  8 11  0  2  9  0  0 
- 9  0 14  0  6  7  0  3 11  0  5 10  0 15  0  0 
- 0  0  4  0  0  0  9  0  0  1  0  0  0  2  0  0 
- 2 13  0  0 11  0 15  0  0  7  0  4  0  0 14 16 
- 0  0 11  8 13 16  0  0  6  0  3 14  7  0  0  0 
- 0  0  0  2 12  4  0 11  0  0  7 15  9  0  0  0 
- 8  5  0  0 16  0  3  0  0  0  0 12  0  0  2  7 
- 0  0  9  0  0  0  7  0  0 10  0  0  0  5  0  0 
-16  0  1  0 14  5  0  2  4  0  8  0  0  0  0 11 
- 0  0 12 13  0 14  8  0  0  0 15  0  3  1  0  0 
-11  8  0  0  0  0  0  4 10  0  0  7  0  0 15 14 
- 0  0  0  0  0  0  0 12  9  0  0  0  0  0  0  0 
- 7  0 15  0  0 11  5  0  0 14  4  0  0 12 13  0 
-'''
-''' very hard, tricky and extreme shit, 16*16 sudoku (approximate 20 seconds --- 1668 recursive calls): 
-11 0 5 0 0 12 0 0 13 0 0 10 0 0 0 0
-0 13 0 0 0 0 5 0 1 0  14 0 2 0 0 0
-0 0 0 9 0 0 0 2 0 5 0 0 14 0 7 0
-4 0 12 0 8 0 0 0 0 0 0 16 0 10 0 0
-0 9 0 11 0 0 4 0 3 6 0 0 0 0 0 7
-6 0 8 0 10 13 0 16 0 0 11 0 15 0 9 0
-0 3 0 0 0 0 2 0 15 0 0 0 0 13 0 1
-16 0 0 2 0 1 0 5 0 14 0 8 0 0 0 0
-0 0 16 0 13 4 0 0 0 0 0 0 0 0 12 0
-0 0 10 3 0 7 0 0 5 0 16 0 9 0 0 15
-15 0 11 0 1 0 0 9 0 2 0 3 0 4 0 0
-0 0 0 0 0 0 8 0 0 0 4 0 10 0 0 0
-2 0 4 0 0 0 0 0 0 0 0 12 0 0 5 0
-0 12 0 13 0 0 0 1 0 0 10 0 0 3 0 8
-8 0 9 0 4 0 3 0 0 7 0 0 11 0 13 0
-0 5 0 14 0 0 0 11 0 0 1 6 0 0 0 10
-'''
-''' easy 9*9 sudoku (approximate 0.08 seconds --- 0 recursive calls): 
-7 9 0 0 0 0 3 0 0
-0 0 0 0 0 6 9 0 0
-8 0 0 0 3 0 0 7 6
-0 0 0 0 0 5 0 0 2
-0 0 5 4 1 8 7 0 0
-4 0 0 7 0 0 0 0 0
-6 1 0 0 9 0 0 0 8
-0 0 2 3 0 0 0 0 0
-0 0 9 0 0 0 0 5 4
-'''
-''' easy, 9*9 sudoku (approximate 0.06 seconds --- 0 recursive calls): 
-0 0 8 0 0 0 0 7 0
-1 4 0 2 5 0 0 0 0
-0 0 3 0 0 0 9 0 0
-2 0 0 1 0 5 0 8 9
-0 0 0 0 2 0 0 0 0
-4 0 0 0 7 0 1 0 0
-8 0 5 0 0 4 0 0 0
-0 0 0 9 1 0 5 0 0
-0 0 2 5 0 0 0 4 0
-'''
-''' medium, 9*9 sudoku (approximate 0.12 seconds --- 12 recursive calls): 
-0 0 0 9 0 3 0 0 0
-0 0 5 4 0 8 1 0 0
-0 9 0 0 2 0 0 3 0
-1 2 0 0 0 0 0 5 3
-0 0 0 0 0 0 0 0 0
-9 5 0 0 0 0 0 7 8
-0 7 0 0 4 0 0 1 0
-0 0 9 6 0 1 3 0 0
-0 0 0 7 0 5 0 0 0
-'''
-''' hard, 9*9 sudoku (approximate 1.8 seconds --- 525 recursive calls): 
-8 0 0 0 0 0 0 0 0
-0 0 3 6 0 0 0 0 0
-0 7 0 0 9 0 2 0 0
-0 5 0 0 0 7 0 0 0
-0 0 0 0 4 5 7 0 0
-0 0 0 1 0 0 0 3 0
-0 0 1 0 0 0 0 6 8
-0 0 8 5 0 0 0 1 0
-0 9 0 0 0 0 4 0 0
-'''
-''' very hard, 9*9 sudoku (approximate 0.2 seconds --- 46 recursive calls): 
-1 0 0 0 0 7 0 9 0
-0 3 0 0 2 0 0 0 8
-0 0 9 6 0 0 5 0 0
-0 0 5 3 0 0 9 0 0
-0 1 0 0 8 0 0 0 2
-6 0 0 0 0 4 0 0 0
-3 0 0 0 0 0 0 1 0
-0 4 0 0 0 0 0 0 7
-0 0 7 0 0 0 3 0 0
-'''
-''' very hard, extreme shit, 9*9 sudoku (approximate 0.13 seconds --- 18 recursive calls): 
-0 0 2 0 9 0 3 0 0
-8 0 5 0 0 0 0 0 0
-1 0 0 0 0 0 0 0 0
-0 9 0 0 6 0 0 4 0
-0 0 0 0 0 0 0 5 8
-0 0 0 0 0 0 0 0 1
-0 7 0 0 0 0 2 0 0
-3 0 0 5 0 0 0 0 0
-0 0 0 1 0 0 0 0 0
-'''
